@@ -1,4 +1,6 @@
 import os
+import json
+import ast
 import warnings
 
 from slack_bolt import App
@@ -6,15 +8,17 @@ from pathlib import Path
 from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-
 from numba import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
+from app.chat import SlackWebClient, OpenAIClient
+from app.talk import WhisperClient, ElevenLabsClient
+from app.automate import CommandEmbedding, SOARClient
+from app.helper import Decorator
 
 # Ignore the Numba and FP16 related warnings
 warnings.filterwarnings("ignore", category=NumbaDeprecationWarning)
 warnings.filterwarnings("ignore", category=NumbaPendingDeprecationWarning)
 warnings.filterwarnings("ignore", "FP16 is not supported on CPU; using FP32 instead")
 
-from app.clients import SlackWebClient, OpenAIClient, ElevenLabsClient, WhisperClient
 
 # Load environment variables from .env file if it exists
 env_path = Path('.') / '.env'
@@ -23,21 +27,33 @@ if env_path.exists():
 
 # Retrieve environment variables
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
-ELEVEN_LABS_KEY = os.environ.get("ELEVEN_LABS_KEY")
+
 ELEVEN_LABS_URL = os.environ.get("ELEVEN_LABS_URL")
+ELEVEN_LABS_KEY = os.environ.get("ELEVEN_LABS_KEY")
 ELEVEN_LABS_VOICE_ID = os.environ.get("ELEVEN_LABS_VOICE_ID")
 ELEVEN_LABS_MODEL_ID = os.environ.get("ELEVEN_LABS_MODEL_ID")
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Initialize the App with SLACK_BOT_TOKEN
-app = App(token=SLACK_BOT_TOKEN)
+COMMAND_EMBEDDING_PATH = os.getenv("COMMAND_EMBEDDING_PATH")
+COMMAND_EMBEDDING_MODEL = os.getenv("COMMAND_EMBEDDING_MODEL")
 
-# Initialize the clients for various services
+SOAR_URL = os.getenv("SOAR_URL")
+SOAR_API_KEY = os.getenv("SOAR_API_KEY")
+SOAR_VERIFY_SSL = os.getenv("SOAR_VERIFY_SSL")
+
+# Initialize the clients
+app = App(token=SLACK_BOT_TOKEN)
 openai_client = OpenAIClient(api_key=OPENAI_API_KEY)
 eleven_labs_client = ElevenLabsClient(api_key=ELEVEN_LABS_KEY, api_url=ELEVEN_LABS_URL,
                                       voice_id=ELEVEN_LABS_VOICE_ID, model_id=ELEVEN_LABS_MODEL_ID)
 slack_web_client = SlackWebClient(api_key=SLACK_BOT_TOKEN)
 whisper_client = WhisperClient()
+command_embedding = CommandEmbedding(command_embedding_path=COMMAND_EMBEDDING_PATH,
+                                     embedding_model=COMMAND_EMBEDDING_MODEL)
+soar_client = SOARClient(url=SOAR_URL, api_key=SOAR_API_KEY, verify_ssl=False)
+
+# Helper Functions
 
 
 @app.event("app_home_opened")
@@ -99,6 +115,17 @@ def update_home_tab(client: WebClient, event: dict, logger):
 @app.event("message")
 def handle_message(body, say):
     """
+    This function handles messages in direct messages (DM) channels.
+    If the message contains files, it assumes they are audio files, downloads and transcribes them.
+    If the message is text, it directly processes it.
+    In both cases, the transcribed or original text is processed with OpenAI's chat model,
+    and the generated response is converted to speech using Eleven Labs' service and sent back to the user.
+
+    Parameters:
+    body (dict): The event body.
+    say (function): Function to send a message back to the Slack channel.
+    """
+    """
     Event handler for 'message' event.
 
     This function handles messages in direct messages (DM) channels.
@@ -136,9 +163,88 @@ def handle_message(body, say):
         openai_response = openai_client.chat(text)
         # Convert the response to speech using Eleven Labs' service
         audio_file = eleven_labs_client.text_to_speech(openai_response)
-        # Send the audio file back to the user
+        # Send the audio file back ato the user
         app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
         # Remove the generated audio file
         os.remove(audio_file)
         # Send the OpenAI response as a text message
-        say(openai_response)
+        if "Automation Request:" in openai_response:
+            say("That looks like an automation request, let me find out if I can run for you, will come back shortly!. "
+                "Meanwhile you can listen to the voice note for generic information about your request.")
+            question_vector = command_embedding.get_embedding_vectors(text)
+            command_embedding.get_similarities(question_vector)
+            top_similar_rows = command_embedding.get_top_similar_rows(4)
+            choices = Decorator.generate_choices(top_similar_rows)
+            section_block = [{
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "We have found the following similar commands to your automation question:"
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a command"
+                    },
+                    "options": choices,
+                    "initial_option": choices[0],
+                    "action_id": "suggested-commands-menu-action"
+                }
+            }]
+
+            say({
+                "blocks": section_block
+            })
+        elif "enrichment request" in openai_response.lower():
+            say("That looks like an enrichment request, will come back shortly!. "
+                "Meanwhile you can listen to the voice note for generic information about your request.")
+
+            indicators = soar_client.execute_command(command=f'!extractIndicators text="{text}"',
+                                                     output_path=["ExtractedIndicators"], return_type='context')
+            for indicator in indicators:
+                indicator_object = ast.literal_eval(indicator)
+                for key, values in indicator_object.items():
+                    enriched_indicator = soar_client.enrich_indicator(indicator={key: values}, return_type='context')
+                    print(enriched_indicator, type(enriched_indicator))
+                    section_blocks = Decorator.enrichment_blocks(dict_list=enriched_indicator,
+                                                                 header="Indicator Information")
+                    say({
+                        "blocks": section_blocks
+                    })
+
+        else:
+            say(openai_response)
+
+
+@app.action("suggested-commands-menu-action")
+def handle_suggested_commands_menu_actions(body, ack, say):
+    """
+    This function handles the actions performed in the suggested commands menu.
+    It checks whether the SOAR client is up and then executes the command selected by the user.
+
+    Parameters:
+    body : dict
+        The payload received from the Slack interaction which contains the user and the selected command.
+
+    ack : function
+        An acknowledgment function to respond to the Slack interaction.
+
+    say : function
+        A function to post messages to the Slack channel.
+
+    Returns:
+    None
+    """
+    ack()
+    if Decorator.check_key(body.get('user'), 'id'):
+        user = body['user']['id']
+    else:
+        user = body['message']['bot_id']
+
+    selected_option = body['actions'][0]['selected_option']['value']
+    if soar_client.up:
+        say(f"Your wish is my command, <@{user}>!")
+        say('Executing Command: ' + str(selected_option))
+    else:
+        say(f"SOAR is not reachable, please get in touch with SOC team!")

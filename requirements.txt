@@ -9,3 +9,6 @@ pydub~=0.25.1
 numba~=0.57.0
 hupper~=1.12
 openai-whisper~=20230314
+pandas~=2.0.1
+numpy~=1.24.3
+joblib~=1.2.0

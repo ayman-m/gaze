@@ -1,4 +1,35 @@
 import json
+import csv
+import pandas as pd
+
+
+# Load your original dataframe
+df = pd.read_csv('data/command_embedding.csv')
+
+# Select the columns you want to keep
+df = df[['name', 'embedding']]
+
+# Write the dataframe to a new csv file
+df.to_csv('data/command_embedding_no_description.csv', index=False)
+
+
+"""
+# Load your JSON file
+with open('output.json') as f:
+    data = json.load(f)
+
+# Open (or create) your CSV file
+with open('output.csv', 'w') as f:
+    # Create a CSV writer
+    writer = csv.DictWriter(f, fieldnames=['name', 'description'])
+
+    # Write the CSV header
+    writer.writeheader()
+
+    # Write the JSON data to the CSV file
+    for row in data:
+        writer.writerow(row)
+
 
 total_tokens = 0
 token_cost = 0.000240881872618
@@ -21,4 +52,4 @@ with open('output.jsonl', 'r') as f:
             if isinstance(value, str):
                 total_tokens += len(value.split())
     tuning_cost = total_tokens * token_cost
-print(f"Total tokens: {total_tokens} with cost: {tuning_cost}")
+"""
