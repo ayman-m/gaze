@@ -1,0 +1,20 @@
+Run a hunt query for any processes named 'svchost' running outside of 'System32'
+Can you execute a query to find any occurrences of the 'Mimikatz' keyword in our logs?"
+Execute a hunt for any logins occurring outside of normal business hours
+Run a query to find any devices with an unusual amount of failed login attempts
+Search for any large data transfers that occurred within the last week
+Hunt for any attempts to access the admin directory on our server
+Execute a search for any system changes made within the last 24 hours
+Run a query to find all instances of this IP address in our logs
+Search for any new users created in the last month
+Execute a hunt for any devices running outdated antivirus software
+Find any accounts that have been granted admin privileges in the last week
+Hunt for any log entries related to this specific file hash
+Run a query to find any emails containing this phishing URL
+Search for any suspicious network connections made in the last 48 hours
+Execute a hunt for any alterations to our firewall settings
+Can you run a query to find any instances of this known malware signature in our system?"
+Find any devices that have not received the latest security patch
+Hunt for any instances of this domain in our DNS logs
+Run a query for any outgoing connections to this IP address
+Search for any login attempts made to this user account in the last 3 days

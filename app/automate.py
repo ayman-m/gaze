@@ -10,23 +10,23 @@ import demisto_client
 import demisto_client.demisto_api
 from demisto_client.demisto_api.rest import ApiException
 
-from helper import Decorator
+from app.helper import Decorator
 
 
-class CommandEmbedding:
+class TextEmbedding:
     """
-    A class to represent a collection of command embeddings.
+    A class to represent a collection of text embeddings.
 
     ...
 
     Attributes
     ----------
     file_path : str
-        a string path for the csv file containing the command embeddings.
+        a string path for the csv file containing the text embeddings.
     embedding_model : str
         a string representing the name of the embedding model used.
     df : pandas.DataFrame
-        a pandas DataFrame containing the loaded command embeddings.
+        a pandas DataFrame containing the loaded text embeddings.
 
     Methods
     -------
@@ -37,20 +37,20 @@ class CommandEmbedding:
     get_top_similar_rows(num_rows=2)
         Returns the top similar rows from the DataFrame sorted by the 'similarities' column.
     """
-    def __init__(self, command_embedding_path, embedding_model):
+    def __init__(self, text_embedding_path, embedding_model):
         """
-        Constructs all the necessary attributes for the CommandEmbedding object.
+        Constructs all the necessary attributes for the textEmbedding object.
 
         Parameters
         ----------
-            command_embedding_path : str
-                path of the csv file containing the command embeddings.
+            text_embedding_path : str
+                path of the csv file containing the text embeddings.
             embedding_model : str
                 name of the embedding model to use.
         """
-        self.file_path = command_embedding_path
+        self.file_path = text_embedding_path
         self.embedding_model = embedding_model
-        self.df = pd.read_csv(command_embedding_path, usecols=['embedding', 'name'])
+        self.df = pd.read_csv(text_embedding_path, usecols=['embedding', 'name'])
 
     def get_embedding_vectors(self, question):
         """
@@ -71,7 +71,7 @@ class CommandEmbedding:
 
     def get_similarities(self, question_vector):
         """
-        Calculates and adds a new 'similarities' column to the DataFrame with the cosine similarities of each command
+        Calculates and adds a new 'similarities' column to the DataFrame with the cosine similarities of each text
         in the DataFrame to the given question vector.
 
         Parameters
@@ -176,6 +176,7 @@ class SOARClient:
         update_entry = {"investigationId": playground_id, "data": query}
         client = demisto_client.configure(base_url=self.url, api_key=self.api_key, verify_ssl=self.verify_ssl)
         answer = client.investigation_add_entries_sync(update_entry=update_entry)
+
         if not answer:
             print ("User command did not run, make sure it was written correctly.")
         log_ids = []

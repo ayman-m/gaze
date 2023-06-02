@@ -11,7 +11,7 @@ from slack_sdk.errors import SlackApiError
 from numba import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 from app.chat import SlackWebClient, OpenAIClient
 from app.talk import WhisperClient, ElevenLabsClient
-from app.automate import CommandEmbedding, SOARClient
+from app.automate import TextEmbedding, SOARClient
 from app.helper import Decorator
 
 # Ignore the Numba and FP16 related warnings
@@ -35,6 +35,8 @@ ELEVEN_LABS_MODEL_ID = os.environ.get("ELEVEN_LABS_MODEL_ID")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+INTENT_EMBEDDING_PATH = os.getenv("INTENT_EMBEDDING_PATH")
+INTENT_EMBEDDING_MODEL = os.getenv("INTENT_EMBEDDING_MODEL")
 COMMAND_EMBEDDING_PATH = os.getenv("COMMAND_EMBEDDING_PATH")
 COMMAND_EMBEDDING_MODEL = os.getenv("COMMAND_EMBEDDING_MODEL")
 
@@ -49,8 +51,9 @@ eleven_labs_client = ElevenLabsClient(api_key=ELEVEN_LABS_KEY, api_url=ELEVEN_LA
                                       voice_id=ELEVEN_LABS_VOICE_ID, model_id=ELEVEN_LABS_MODEL_ID)
 slack_web_client = SlackWebClient(api_key=SLACK_BOT_TOKEN)
 whisper_client = WhisperClient()
-command_embedding = CommandEmbedding(command_embedding_path=COMMAND_EMBEDDING_PATH,
-                                     embedding_model=COMMAND_EMBEDDING_MODEL)
+command_embedding = TextEmbedding(text_embedding_path=COMMAND_EMBEDDING_PATH, embedding_model=COMMAND_EMBEDDING_MODEL)
+intent_embedding = TextEmbedding(text_embedding_path=INTENT_EMBEDDING_PATH, embedding_model=COMMAND_EMBEDDING_MODEL)
+
 soar_client = SOARClient(url=SOAR_URL, api_key=SOAR_API_KEY, verify_ssl=False)
 
 # Helper Functions
@@ -159,14 +162,19 @@ def handle_message(body, say):
         else:
             # If the message is text, get the text
             text = body.get("event", {}).get("text", "")
+        intent_vector = command_embedding.get_embedding_vectors(text)
+        intent_embedding.get_similarities(intent_vector)
+        top_similar_rows = intent_embedding.get_top_similar_rows(4)
+        print (top_similar_rows)
+        """
         # Process the text with OpenAI's chat model
         openai_response = openai_client.chat(text)
         # Convert the response to speech using Eleven Labs' service
-        audio_file = eleven_labs_client.text_to_speech(openai_response)
+        #audio_file = eleven_labs_client.text_to_speech(openai_response)
         # Send the audio file back ato the user
-        app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
+        #app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
         # Remove the generated audio file
-        os.remove(audio_file)
+        #os.remove(audio_file)
         # Send the OpenAI response as a text message
         if "Automation Request:" in openai_response:
             say("That looks like an automation request, let me find out if I can run for you, will come back shortly!. "
@@ -215,8 +223,17 @@ def handle_message(body, say):
 
         else:
             say(openai_response)
-
-
+        """
+        choices = []
+        for index, row in top_similar_rows.iterrows():
+            choices.append({
+                "text": {
+                    "type": "plain_text",
+                    "text": row['name'],
+                },
+                "value": row['name']
+            })
+        say( "ok")
 @app.action("suggested-commands-menu-action")
 def handle_suggested_commands_menu_actions(body, ack, say):
     """

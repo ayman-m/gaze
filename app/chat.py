@@ -96,7 +96,8 @@ class OpenAIClient:
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "Your name is Gaze, you are a helpful assistant to help the user "
-                                                  "automate some tasks, the user will ask you to automate some IT "
+                                                  "automate some tasks, the user will questions about IT and "
+                                                  "cyber security topics and the use may ask you to automate some IT "
                                                   "and SOC related activities, if you think the user question or "
                                                   "message is not relevant to IT or cyber security inform the "
                                                   "user that the question is not related to his or her job "

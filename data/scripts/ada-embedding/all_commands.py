@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai.embeddings_utils import get_embedding
 import csv
 
-env_path = Path('.') / '.env'
+env_path = Path('../..') / '.env'
 if env_path.exists():
     load_dotenv()
 
@@ -18,7 +18,7 @@ openai.api_key = OPENAI_API_KEY
 df = pd.read_csv('data/output.csv')
 
 # Prepare the CSV writer
-csv_file = open('all-command_embedding.csv', 'w', newline='')
+csv_file = open('embeddings/openai-ada/all-command_embedding.csv', 'w', newline='')
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow(df.columns.tolist() + ['embedding'])
 

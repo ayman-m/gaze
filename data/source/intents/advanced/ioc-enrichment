@@ -1,0 +1,47 @@
+Enrich the extracted IP addresses with threat intelligence
+Can we add geolocation data to these IP addresses?
+Cross-reference the file hashes with known malware databases
+Enrich the domain names with reputation scores
+Check this ip address
+Check this domain name
+Check this url
+Check this cve
+Check this indicator
+Check this ioc
+Enrich the suspicious IP addresses with geolocation data
+Get the reputation score for these IP addresses
+Look up Autonomous System Number (ASN) details for the extracted IP addresses
+Can we cross-check these IP addresses against threat intelligence databases?
+I need WHOIS information for these domains
+Check if these domains are present in any blacklists
+Get the SSL certificate details for these domains
+Find the reputation of these hashes
+Search for these hashes on online malware analysis platforms
+Determine the hosting details for these URLs
+Enrich the URL data with threat intelligence
+Check the safety rating of these URLs
+I need the redirection chain for these URLs
+Could you associate any associated domain names with these IP addresses
+Can we find out the ISP details for these IPs
+I need a list of all known services running on these IPs
+Get me the domain categorization for these domains
+Pull up any associated subdomains
+Find out the creation and expiration dates of these domains
+Can we identify the file types associated with these hashes
+I need to know if these file hashes have been analyzed in any sandbox environments
+See if these hashes are associated with any known phishing campaigns
+Get the full webpage content for these URLs
+I need screenshot of these URLs for further analysis
+Check if these URLs have been scanned by any web scanners
+Extract and enrich all URLs and attachments from these email samples
+Find out the sending servers of these suspicious emails
+Check if these email addresses are linked to any known spam campaigns
+Can we get more details about this IP from our threat feeds?
+Look up the registration details for this domain
+oes this hash match any entries in our threat intelligence?
+Get more information about this URL from our web categorization database
+Can we identify the server hosting this URL?
+Is this CVE associated with any known exploits or malware?
+Check if this domain is a known phishing site.
+Does this URL contain any malicious scripts or exploits?
+Find out the malware associated with this hash in our threat intelligence.

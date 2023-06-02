@@ -1,0 +1,100 @@
+What is a Security Operations Center (SOC)?
+What roles are typically included in a SOC team?
+What are the responsibilities of a SOC analyst?
+What's the difference between a SOC and a Network Operations Center (NOC)?
+Can you describe the typical workflow in a SOC?
+What types of security incidents does a SOC handle?
+What is the role of threat intelligence in a SOC?
+How does a SOC contribute to risk management in an organization?
+What kinds of technologies and tools are commonly used in a SOC?
+Can you explain how Incident Response is managed in a SOC?
+What are the key performance indicators (KPIs) for a SOC?
+What's the significance of the SOC in maintaining regulatory compliance?
+How does a SOC communicate and collaborate with other departments?
+What is the role of a SOC in a cybersecurity incident?
+What are the stages of incident handling in a SOC?
+How does a SOC stay up-to-date with emerging threats?
+What's the importance of having a 24/7 SOC?
+Can you explain the concept of 'threat hunting' in a SOC context?
+How does automation and orchestration support SOC operations?
+What factors should be considered when setting up a SOC?
+What is incident response?
+What are the stages of the incident response life cycle?
+What is the role of an incident response team?
+Can you explain what a Computer Security Incident Response Team (CSIRT) is?
+How does an organization prepare for incident response?
+What is the importance of having an incident response plan?
+Can you explain the concept of 'incident containment'?
+What are common types of security incidents that require a response?
+What are some best practices for incident response?
+How is communication handled during a security incident?
+Can you describe how incident severity is usually classified?
+What's the role of forensics in incident response?
+What are the main goals of incident eradication and recovery?
+How does incident response help with regulatory compliance?
+What kind of documentation is important for incident response?
+What's the relationship between incident response and risk management?
+How is incident response different from incident management?
+What is a 'root cause analysis' in the context of incident response?
+How are lessons learned incorporated into future incident response planning?
+How important is continuous monitoring in incident response?
+What is threat intelligence?
+How does threat intelligence support cybersecurity efforts?
+What are the sources of threat intelligence?
+What's the difference between tactical, operational, and strategic threat intelligence?
+Can you explain what a threat intelligence platform (TIP) is?
+How do organizations use threat intelligence feeds?
+What are Indicators of Compromise (IoCs) in the context of threat intelligence?
+What's the role of a threat intelligence analyst?
+How does threat intelligence contribute to incident response?
+What are the challenges in managing and applying threat intelligence?
+What is the relationship between threat intelligence and threat hunting?
+How does threat intelligence support risk management in an organization?
+Can you explain how threat intelligence helps in proactive defense?
+What's the importance of threat intelligence sharing among organizations?
+What are the standards commonly used in threat intelligence, like STIX and TAXII?
+How can an organization evaluate the quality of its threat intelligence?
+What factors should be considered when choosing a threat intelligence vendor?
+How does threat intelligence help in detecting Advanced Persistent Threats (APTs)?
+What role does artificial intelligence play in threat intelligence?
+How do we integrate threat intelligence with existing security infrastructure?
+What is vulnerability management?
+What's the difference between vulnerability assessment and vulnerability management?
+Can you explain the process of vulnerability scanning?
+What is a vulnerability database?
+What's the role of patch management in vulnerability management?
+How are vulnerabilities typically classified and prioritized?
+What is a Common Vulnerability Scoring System (CVSS)?
+How does a vulnerability management program contribute to risk management?
+What types of tools are used in vulnerability management?
+What are the challenges in managing vulnerabilities in an organization?
+How frequently should vulnerability scans be conducted?
+What is the process of vulnerability remediation?
+What is 'zero-day' vulnerability?
+Can you explain how vulnerability management supports regulatory compliance?
+What is the role of threat intelligence in vulnerability management?
+What are the steps to implement a vulnerability management program?
+How does vulnerability management handle third-party vulnerabilities?
+How important is asset inventory in vulnerability management?
+What's the relationship between penetration testing and vulnerability management?
+What are the key metrics to track in a vulnerability management program?
+What is compliance management?
+Can you explain the role of compliance in cybersecurity?
+What is a compliance audit?
+What are some common cybersecurity regulations and standards organizations need to comply with?
+What's the difference between compliance and security?
+What are the challenges in achieving and maintaining compliance?
+What is the role of a compliance officer?
+How does an organization develop a compliance program?
+What are the potential consequences of non-compliance?
+What's the role of risk assessment in compliance management?
+How does compliance management handle data privacy regulations like GDPR?
+What are the key elements of a successful compliance program?
+What is 'continuous compliance' in cloud environments?
+How important are policies and procedures in compliance management?
+What types of tools and technologies support compliance management?
+How does compliance management handle third-party compliance?
+What role does employee training play in compliance management?
+How does a compliance management system support incident response?
+What is the importance of regular compliance reporting?
+Can you explain the concept of 'compliance as a service' (CaaS)?

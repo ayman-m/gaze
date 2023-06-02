@@ -1,0 +1,177 @@
+Create a new case for this incident
+Assign this case to the incident response team
+Update the case status to 'In Progress'
+Close the case after confirming the incident has been resolved
+Add these findings to the existing case file
+Notify all stakeholders of the updated case status
+Set the priority of the case to high
+Provide a summary report of the case for review
+Schedule a case review meeting for next week
+Escalate the case to management for further investigation
+Share the case details with the cybersecurity team
+Attach the incident report to the case file
+Link related cases for a comprehensive analysis
+Track the time spent on the case for auditing purposes
+Request additional resources for the case
+Assign a case owner to ensure accountability
+Set a deadline for case resolution
+Review all actions taken in the case
+Document all steps taken for future reference in the case
+Provide regular case updates to the team
+Collate all evidence and attach it to the case
+Can we pull up the system configuration for this endpoint
+Provide the recent activity logs for this endpoint
+Fetch the security patch status for this endpoint
+Can we see the connected peripherals for this machine
+Pull up all the IP addresses this endpoint has used
+Show me all the users who have logged into this endpoint
+Enrich this endpoint's profile with its network traffic data
+Fetch the list of all software installed on this endpoint
+Show me the firewall settings for this endpoint
+Get the antivirus scan reports for this endpoint
+Enrich this endpoint data with the event logs
+What are the storage details of this endpoint
+Provide the operating system details for this endpoint
+Show all failed login attempts to this endpoint
+Can we see the internet history for this endpoint
+Find out the CPU and memory usage patterns for this endpoint
+Fetch a list of all processes running on this endpoint
+Get the email communication details for users on this endpoint
+Can we find out if this endpoint was involved in any security incidents
+Fetch the list of all network connections made by this endpoint
+Isolate the compromised endpoint immediately
+Can we cut off this machine from the network
+Disconnect the infected computer from the rest of our systems
+Put this endpoint in isolation mode
+We need to isolate this endpoint to prevent further spread
+Separate the infected machine from our network
+I want to stop this computer from communicating with other systems
+Cut this endpoint off from the rest of our network
+Put the suspicious machine in containment
+Can you make sure this computer is not connected to any network?"
+We should disconnect this machine from the rest of our infrastructure
+Can we quarantine this endpoint?"
+Block network access for this computer
+We need to isolate this machine to contain the potential threat
+Could you segregate this endpoint from the rest of our network?"
+Make sure this computer cannot communicate with the network
+This endpoint needs to be taken offline
+Ensure that this machine is isolated from the network
+I want to make sure this endpoint can't access our servers
+Is it possible to completely isolate this machine from our network
+Please put this endpoint in quarantine mode
+I need this computer to be disconnected from all network access
+Run a hunt query for any processes named 'svchost' running outside of 'System32'
+Can you execute a query to find any occurrences of the 'Mimikatz' keyword in our logs?"
+Execute a hunt for any logins occurring outside of normal business hours
+Run a query to find any devices with an unusual amount of failed login attempts
+Search for any large data transfers that occurred within the last week
+Hunt for any attempts to access the admin directory on our server
+Execute a search for any system changes made within the last 24 hours
+Run a query to find all instances of this IP address in our logs
+Search for any new users created in the last month
+Execute a hunt for any devices running outdated antivirus software
+Find any accounts that have been granted admin privileges in the last week
+Hunt for any log entries related to this specific file hash
+Run a query to find any emails containing this phishing URL
+Search for any suspicious network connections made in the last 48 hours
+Execute a hunt for any alterations to our firewall settings
+Can you run a query to find any instances of this known malware signature in our system?"
+Find any devices that have not received the latest security patch
+Hunt for any instances of this domain in our DNS logs
+Run a query for any outgoing connections to this IP address
+Search for any login attempts made to this user account in the last 3 days
+Can you provide more detailed logs from the firewall
+Fetch the authentication logs for this user for the last week
+Get me the system logs from this endpoint for the past month
+Provide the network traffic logs from our main server
+Can we get the event logs from this specific machine
+Pull up the DNS query logs for this particular IP address
+Fetch all the logs related to this security incident
+Can we see the email logs for this specific user
+Get me the application logs for this suspicious activity
+Pull up the detailed error logs from our main server
+Fetch the web server logs for this specific URL
+Can you provide more detailed logs from our intrusion detection system
+Provide all the logs related to this failed login attempt
+Can we get the data transfer logs from this machine
+Fetch the VPN access logs for the last 48 hours
+Pull up the recent logs related to this file hash
+Get me the logs of all network connections made by this endpoint
+Can we see the system change logs for this machine
+Fetch the detailed logs of this abnormal process activity
+Can we get the logs of all recent email attachments opened by this user
+I need to open a case
+I want to block ip address
+I want to block domain
+I want to block url
+I want to block file
+Block the suspicious IP address
+We need to block this domain immediately
+Could you block this URL across our network?"
+Let's prevent this file hash from executing on our systems
+I want to add this IP address to our blocklist
+Please block all traffic to this domain
+Can we stop this URL from being accessed?"
+Is it possible to block this file hash on all endpoints?"
+Prevent any communication with this IP
+We should restrict access to this domain
+Make sure this URL is inaccessible from our network
+Block this file hash from being downloaded
+Add this IP to the firewall's blocklist
+Deny any connection attempts to this domain
+This URL seems malicious, let's block it
+I think we should block this file hash from running on our systems
+Can you make sure this IP address is blocked on our routers and firewalls?"
+Is it possible to deny any DNS requests for this domain?"
+We need to stop any outbound traffic to this URL
+Add this file hash to our endpoint security software's blocklist
+Block any email containing this URL
+Can you deny any web requests to this domain from our servers?"
+I want to prevent this file hash from being able to run on our systems
+Block this IP in the firewall settings
+Blacklist this domain on our DNS servers
+Disable the user account immediately
+Force the password to expire for this user
+Can you suspend this user account right now?"
+We need to make this user change their password at next logon
+Please deactivate this user account
+Is it possible to set this user's password to expire today?"
+Let's block this user account for now
+Make it so this user has to reset their password upon their next login
+I want to turn off access for this user account
+Could you set the password for this user to expire immediately?"
+This user account should be deactivated as soon as possible
+Can we require this user to change their password next time they log in?"
+Can we restrict access for this user account?"
+I think it's time for this user to change their password
+Let's put a hold on this user account for now
+We should make sure this user changes their password today
+I need to shut down access for this user account
+Can you force a password reset for this user?"
+Please stop any further access from this user account
+This user should have to reset their password at their next login
+Can we halt access for this user account?"
+We should enforce a password change for this user
+Deny access for this user account for now
+Make this user change their password as soon as possible
+Enrich the user profile with latest activity logs
+Can we pull up the most recent actions taken by this user?"
+Get a list of devices used by this user
+Provide the access history of this user
+Pull up all the IP addresses this user has logged in from
+Enrich the user data with the previous incident reports
+What resources does this user have access to?"
+Show me the login times of this user for the last month
+Can we find out the user's typical activity patterns?"
+Provide all the roles and permissions associated with this user
+Fetch the latest authentication logs for this user
+Can we find out if this user's account was involved in any security incidents?"
+Show all the groups this user is a part of
+Enrich this user's profile with the list of accessed files
+What other users have similar access rights?"
+Show all failed login attempts for this user
+Can you provide any recent password change events for this user?"
+Find out if this user has any administrative privileges
+Fetch a list of all applications accessed by this user
+Get the email communication details for this user

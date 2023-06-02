@@ -1,0 +1,20 @@
+Can we pull up the system configuration for this endpoint?"
+Provide the recent activity logs for this endpoint
+Fetch the security patch status for this endpoint
+Can we see the connected peripherals for this machine?"
+Pull up all the IP addresses this endpoint has used
+Show me all the users who have logged into this endpoint
+Enrich this endpoint's profile with its network traffic data
+Fetch the list of all software installed on this endpoint
+Show me the firewall settings for this endpoint
+Get the antivirus scan reports for this endpoint
+Enrich this endpoint data with the event logs
+What are the storage details of this endpoint?"
+Provide the operating system details for this endpoint
+Show all failed login attempts to this endpoint
+Can we see the internet history for this endpoint?"
+Find out the CPU and memory usage patterns for this endpoint
+Fetch a list of all processes running on this endpoint
+Get the email communication details for users on this endpoint
+Can we find out if this endpoint was involved in any security incidents?"
+Fetch the list of all network connections made by this endpoint
