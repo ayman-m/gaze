@@ -95,21 +95,8 @@ class OpenAIClient:
             openai_response = self.openai_client.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "Your name is Gaze, you are a helpful assistant to help the user "
-                                                  "automate some tasks, the user will questions about IT and "
-                                                  "cyber security topics and the use may ask you to automate some IT "
-                                                  "and SOC related activities, if you think the user question or "
-                                                  "message is not relevant to IT or cyber security inform the "
-                                                  "user that the question is not related to his or her job "
-                                                  "example of automation tasks could be:"
-                                                  " 'I want to get user information from active directory. or tell "
-                                                  "more about specific attack campaign , or open a case for me."
-                                                  " Always start you reply with 'Automation Request' "
-                                                  "if you think the user is asking how "
-                                                  "to automate something or requesting some action to be taken, if the"
-                                                  "user is asking for information about an IP Address , Domain Name,"
-                                                  "CVE,or a URL, always start your reply with 'Enrichment Request' and"
-                                                  "try to extract the entity that the user is asking about"},
+                    {"role": "system", "content": "Your name is Gaze, answer only the questions that are IT or cyber "
+                                                  "security related."},
                     {"role": "user", "content": message}
                 ]
             )

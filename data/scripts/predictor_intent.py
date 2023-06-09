@@ -63,6 +63,7 @@ if model_choice == "BERT":
 if model_choice == "ADA":
     df = pd.read_csv("data/processed/embedding/intents/ada-basic-intent-embedding.csv", usecols=['embedding', 'name'])
     question_vector = get_embedding(prompt, engine="text-embedding-ada-002")
+    print (question_vector)
     df["similarities"] = df['embedding'].apply(lambda x: cosine_similarity(np.array(ast.literal_eval(x)),
                                                                            question_vector))
     similar_rows = df.sort_values(by='similarities', ascending=False).head(3)

@@ -1,9 +1,12 @@
+import warnings
 import json
 import re
 import pandas as pd
 import requests
 import ast
 import numpy as np
+from urllib3.exceptions import InsecureRequestWarning
+from numba.core.errors import NumbaDeprecationWarning
 from openai.embeddings_utils import get_embedding
 from openai.embeddings_utils import cosine_similarity
 import demisto_client
@@ -12,8 +15,11 @@ from demisto_client.demisto_api.rest import ApiException
 
 from app.helper import Decorator
 
+warnings.filterwarnings('ignore', category=InsecureRequestWarning)
+warnings.filterwarnings('ignore', category=NumbaDeprecationWarning)
 
-class TextEmbedding:
+
+class LocalTextEmbedding:
     """
     A class to represent a collection of text embeddings.
 
@@ -37,7 +43,7 @@ class TextEmbedding:
     get_top_similar_rows(num_rows=2)
         Returns the top similar rows from the DataFrame sorted by the 'similarities' column.
     """
-    def __init__(self, text_embedding_path, embedding_model):
+    def __init__(self, text_embedding_path, embedding_model="text-embedding-ada-002"):
         """
         Constructs all the necessary attributes for the textEmbedding object.
 
@@ -48,6 +54,7 @@ class TextEmbedding:
             embedding_model : str
                 name of the embedding model to use.
         """
+
         self.file_path = text_embedding_path
         self.embedding_model = embedding_model
         self.df = pd.read_csv(text_embedding_path, usecols=['embedding', 'name'])
@@ -69,7 +76,7 @@ class TextEmbedding:
         question_vector = get_embedding(question, engine=self.embedding_model)
         return question_vector
 
-    def get_similarities(self, question_vector):
+    def get_similarities(self, question_vector, num_rows=2):
         """
         Calculates and adds a new 'similarities' column to the DataFrame with the cosine similarities of each text
         in the DataFrame to the given question vector.
@@ -81,22 +88,76 @@ class TextEmbedding:
         """
         self.df["similarities"] = self.df['embedding'].apply(lambda x: cosine_similarity(np.array(ast.literal_eval(x)),
                                                                                          question_vector))
+        similar_rows = self.df.sort_values(by='similarities', ascending=False).head(num_rows)
+        return similar_rows
 
-    def get_top_similar_rows(self, num_rows=2):
-        """
+
+class PineConeTextEmbedding:
+    """
+    A class to represent a collection of text embeddings.
+
+    ...
+
+    Attributes
+    ----------
+    file_path : str
+        a string path for the csv file containing the text embeddings.
+    embedding_model : str
+        a string representing the name of the embedding model used.
+    df : pandas.DataFrame
+        a pandas DataFrame containing the loaded text embeddings.
+
+    Methods
+    -------
+    get_embedding_vectors(question)
+        Generates an embedding vector for the given question.
+    get_similarities(question_vector)
+        Calculates and adds a new 'similarities' column to the DataFrame with the cosine similarities of the question.
+    get_top_similar_rows(num_rows=2)
         Returns the top similar rows from the DataFrame sorted by the 'similarities' column.
+    """
+    def __init__(self, embedding_index, embedding_model="text-embedding-ada-002"):
+        """
+        Constructs all the necessary attributes for the textEmbedding object.
 
         Parameters
         ----------
-        num_rows : int, optional
-            Number of top similar rows to return (default is 2).
+            text_embedding_path : str
+                path of the csv file containing the text embeddings.
+            embedding_model : str
+                name of the embedding model to use.
+        """
+        self.embedding_index = embedding_index
+        self.embedding_model = embedding_model
+
+    def get_embedding_vectors(self, question):
+        """
+        Generates an embedding vector for the given question using the specified embedding model.
+
+        Parameters
+        ----------
+        question : str
+            The question to generate the embedding vector for.
 
         Returns
         -------
-        pandas.DataFrame
-            A DataFrame of the top similar rows.
+        numpy.ndarray
+            The embedding vector for the question.
         """
-        similar_rows = self.df.sort_values(by='similarities', ascending=False).head(num_rows)
+        question_vector = get_embedding(question, engine=self.embedding_model)
+        return question_vector
+
+    def get_similarities(self, question_vector, top_k=2):
+        """
+        Calculates and adds a new 'similarities' column to the DataFrame with the cosine similarities of each text
+        in the DataFrame to the given question vector.
+
+        Parameters
+        ----------
+        question_vector : numpy.ndarray
+            The embedding vector of the question to compare with.
+        """
+        similar_rows = self.embedding_index.query(vector=question_vector, top_k=top_k)
         return similar_rows
 
 
@@ -274,6 +335,9 @@ class SOARClient:
         playground_id = self._get_playground_id()
         wr_entries = []
         output_context = []
+
+        if output_path == ['-'] or "WarRoomOutput" in output_path:
+            output_path = []
         try:
             if output_path:
                 for output in output_path:
@@ -291,6 +355,7 @@ class SOARClient:
                 f"investigation/{playground_id}/context", "POST", context_query
             )[0]
             output_context.append(context)
+
         if return_type == 'both':
             return output_context, wr_entries
         elif return_type == 'context':
@@ -372,3 +437,4 @@ class SOARClient:
                     result.update(ast.literal_eval(dictionary)['CVE'])
                 results.append(Decorator.clean_dict(result))
         return results
+

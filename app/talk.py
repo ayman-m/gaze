@@ -1,9 +1,13 @@
+import warnings
 import uuid
 import os
 import json
 import requests
 import whisper
 from pydub import AudioSegment
+from numba.core.errors import NumbaDeprecationWarning
+
+warnings.filterwarnings('ignore', category=NumbaDeprecationWarning)
 
 
 class WhisperClient:

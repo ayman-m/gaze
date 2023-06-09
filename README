@@ -2,13 +2,16 @@
 
 Gaze is a conversational Slack bot with advanced capabilities in both voice recognition and generation, as well as complex text-based conversation. Gaze is capable of:
 
+![alt text](img/intro.png "Intro")
+
 - Transcribing voice notes into text with the help of the Whisper ASR (Automatic Speech Recognition) system.
+- Detecting the user intent if the user wants to enrich indicators or execute general automations using Cortex XSOAR.
 - Conducting a complex conversation based on context with the help of OpenAI's GPT-3 model.
 - Converting text into voice with the Eleven Labs Text-to-Speech service, which offers a voice-enabled conversational experience.
-- Understanding and processing automation requests with Command Embedding.
-- Enriching security indicators via the SOAR (Security Orchestration, Automation, and Response) client.
 
 ## How It Works
+
+![alt text](img/messageflow.png "Message Flow")
 
 At its core, Gaze makes use of several sophisticated technologies and libraries. The code provided above outlines the initialization and event handling for Gaze's operation within a Slack workspace. Here is an outline of what it does:
 
@@ -23,6 +26,8 @@ When Gaze receives a direct message:
 - Gaze then converts the text response into voice using the Eleven Labs Text-to-Speech service and sends the voice message back to the user.
 
 ## Libraries and Services
+
+![alt text](img/architecture.png "Architecture")
 
 Gaze makes use of several external libraries and services:
 

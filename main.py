@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pathlib import Path
 
-from app.bot import app
+from app.slackbot import app
 
 # Load the Slack App Token from the environment variables
 SLACK_APP_TOKEN = os.environ.get("SLACK_APP_TOKEN")
