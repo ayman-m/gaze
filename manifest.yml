@@ -16,8 +16,17 @@ features:
       callback_id: sample_shortcut_id
       description: Runs a sample shortcut
   slash_commands:
-    - command: /about
+    - command: /ask
       description: Unveiling the untold, one story at a time.
+      should_escape: false
+    - command: /automate
+      description: Describe what you want to automate?
+      should_escape: false
+    - command: /enrich
+      description: Which indicators to enrich?
+      should_escape: false
+    - command: /intent
+      description: Update your intents.
       should_escape: false
 oauth_config:
   scopes:

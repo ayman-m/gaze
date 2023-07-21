@@ -1,4 +1,3 @@
-import json
 import ast
 
 
@@ -10,6 +9,9 @@ class Decorator:
     - clean_dict: Cleans a dictionary by removing keys with None values and flattening nested dictionaries.
     - enrichment_blocks: Generates a list of Slack block kit components to display the information from a list of dictionaries.
     """
+    @classmethod
+    def get_ts_from_trigger_id(cls, trigger_id):
+        return trigger_id.split('.')[1]
 
     @classmethod
     def clean_dict(cls, dictionary):

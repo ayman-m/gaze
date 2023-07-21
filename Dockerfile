@@ -2,16 +2,23 @@
 FROM python:3.8-slim
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /
+
 
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
 
-# Install the Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install git -y
+RUN pip3 install -r requirements.txt
+RUN apt-get install -y ffmpeg
+
+# Copy the /app and /data directories into the container
+COPY ./app /app
+COPY ./data /data
+COPY ./models /models
 
 # Copy the bot script into the container
-COPY main_bot_script.py .
+COPY main.py .
 
 # Run the bot script when the container launches
-CMD ["python", "main_bot_script.py"]
+CMD ["python", "main.py"]

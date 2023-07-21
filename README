@@ -46,7 +46,7 @@ Gaze is designed to be deployed in a Slack workspace. It requires the configurat
 
 Once deployed, users can interact with Gaze in a Slack workspace. Gaze responds to direct messages (
 
-DMs), and can process both text and voice inputs. For voice inputs, users can simply attach audio files to their DMs. For automation or security enrichment requests, Gaze recognizes specific patterns in the text and provides appropriate responses.
+DMs), and commands (ask, automate, enrich and intent) and can process both text and voice inputs. For voice inputs, users can simply attach audio files to their DMs. For automation or security enrichment requests, Gaze recognizes specific patterns in the text and provides appropriate responses.
 
 ## Disclaimer
 

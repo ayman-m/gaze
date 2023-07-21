@@ -1,10 +1,10 @@
 import os
+import re
 import warnings
 import ast
 import pinecone
-import csv
-import json
 import pandas as pd
+import requests
 from slack_bolt import App
 from pathlib import Path
 from dotenv import load_dotenv
@@ -14,7 +14,7 @@ from numba import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 from urllib3.exceptions import InsecureRequestWarning
 from app.chat import SlackWebClient, OpenAIClient
 from app.talk import WhisperClient, ElevenLabsClient
-from app.automate import LocalTextEmbedding,PineConeTextEmbedding, SOARClient
+from app.automate import LocalTextEmbedding, PineConeTextEmbedding, SOARClient
 from app.helper import Decorator
 
 # Ignore the Numba and FP16 related warnings
@@ -75,8 +75,7 @@ command_reader = pd.read_csv(COMMAND_ARGUMENTS_FILE)
 soar_client = SOARClient(url=SOAR_URL, api_key=SOAR_API_KEY, verify_ssl=False)
 
 
-# Helper Functions
-
+# Event Functions
 
 @app.event("app_home_opened")
 def update_home_tab(client: WebClient, event: dict, logger):
@@ -131,6 +130,14 @@ def update_home_tab(client: WebClient, event: dict, logger):
                                     "into voice using the Eleven Labs Text-to-Speech service, providing a "
                                     "voice-enabled conversational experience."
                         }
+                    },
+                    {"type": "divider"},
+                    {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "*Commands*:\n\n:bulb: *Enrich*: This command helps you with indicator enrichment.\n\n:arrow_forward: *Automate*: Use this command to start an automated workflow or process.\n\n:question: *Ask*: This command lets you ask questions related to security and IT operations.\n\n:dart: *Intent*: Use this command to test my intent detection capability."
+                            }
                     }
                 ]
             }
@@ -179,11 +186,10 @@ def handle_message(body, say):
         else:
             text = body.get("event", {}).get("text", "")
         intent_vector = intent_embedding.get_embedding_vectors(text)
-
         user_intent = intent_embedding.get_similarities(intent_vector, 1)['name'].iloc[0]
         similarity_score = intent_embedding.get_similarities(intent_vector, 1)['similarities'].iloc[0]
 
-        if user_intent == 'ioc-enrichment' and float(similarity_score) > 0.81:
+        if user_intent == 'ioc-enrichment' and float(similarity_score) > 0.8:
             say("Working on it, will come back shortly!.")
             indicators = soar_client.execute_command(command=f'!extractIndicators text="{text}"',
                                                      output_path=["ExtractedIndicators"], return_type='context')
@@ -198,7 +204,7 @@ def handle_message(body, say):
                         "blocks": section_blocks
                     })
 
-        elif user_intent == 'automation' and float(similarity_score) > 0.81:
+        elif user_intent == 'automation' and float(similarity_score) > 0.8:
             say("That looks like an automation request, let me find out what we have in our automation library, "
                 " will come back shortly!.")
             question_vector = command_embedding.get_embedding_vectors(text)
@@ -228,10 +234,107 @@ def handle_message(body, say):
 
         else:
             openai_response = openai_client.chat(text)
-            #audio_file = eleven_labs_client.text_to_speech(openai_response)
-            #app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
-            #os.remove(audio_file)
-            say(openai_response)
+            audio_file = eleven_labs_client.text_to_speech(openai_response)
+            app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
+            os.remove(audio_file)
+            response = {
+                "response_type": "in_channel",
+                "text": openai_response
+            }
+            say(response)
+
+
+@app.command("/automate")
+def handle_automate_command(ack, body, say):
+    ack()
+    text = body.get("text", "")
+    question_vector = command_embedding.get_embedding_vectors(text)
+    top_similar_rows = command_embedding.get_similarities(question_vector, 4)
+    choices = Decorator.generate_choices(top_similar_rows)
+    section_block = [{
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "We have found the following similar commands to your automation question:"
+        },
+        "accessory": {
+            "type": "static_select",
+            "placeholder": {
+                "type": "plain_text",
+                "text": "Select a command"
+            },
+            "options": choices,
+            "initial_option": choices[0],
+            "action_id": "suggested-commands-menu-action"
+        }
+    }]
+    say({
+        "blocks": section_block
+    })
+
+
+@app.command("/enrich")
+def handle_enrich_command(ack, body, say):
+    ack()
+    say("Working on your request, will come back shortly!.")
+    text = body.get("text", "")
+    indicators = soar_client.execute_command(command=f'!extractIndicators text="{text}"',
+                                             output_path=["ExtractedIndicators"], return_type='context')
+    for indicator in indicators:
+        indicator_object = ast.literal_eval(indicator)
+        for key, values in indicator_object.items():
+            enriched_indicator = soar_client.enrich_indicator(indicator={key: values}, return_type='context')
+            print(enriched_indicator, type(enriched_indicator))
+            section_blocks = Decorator.enrichment_blocks(dict_list=enriched_indicator,
+                                                         header="Indicator Information")
+            say({
+                "blocks": section_blocks
+            })
+
+
+@app.command("/ask")
+def handle_ask_command(ack, body, say):
+    ack()
+    text = body.get("text", "")
+    channel = body.get("channel_id", "")
+    openai_response = openai_client.chat(text)
+    audio_file = eleven_labs_client.text_to_speech(openai_response)
+    app.client.files_upload_v2(channel=channel, file=audio_file, filename="Bot Response")
+    os.remove(audio_file)
+    response = {
+        "response_type": "in_channel",
+        "text": openai_response
+    }
+    say(response)
+
+
+@app.command("/intent")
+def handle_intent_command(ack, body, say):
+    ack()
+    text = body.get("text", "")
+    blocks = [
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Intent prediction for *'{text}'*"
+            }
+        }
+    ]
+    intent_vector = intent_embedding.get_embedding_vectors(text)
+    intents = intent_embedding.get_similarities(intent_vector, 3)
+    for index, row in intents.iterrows():
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{row['name']}*, Score:*{row['similarities']}*\n"
+            }
+        })
+    say({
+        "blocks": blocks
+    })
 
 
 @app.action("suggested-commands-menu-action")
@@ -324,3 +427,4 @@ def handle_command_line(ack, body, say):
     say({
         "blocks": blocks
     })
+
