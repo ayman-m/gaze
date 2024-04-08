@@ -106,243 +106,6 @@ COMMAND_LIST = {
 app = App(token=BOT_TOKEN, logger=slack_logger)
 
 
-# Decorator class for utility methods
-
-class Decorator:
-    """
-    Decorator is a utility class that provides methods for cleaning dictionaries and generating enrichment blocks for Slack messages.
-
-    Class Methods:
-    - clean_dict: Cleans a dictionary by removing keys with None values and flattening nested dictionaries.
-    - enrichment_blocks: Generates a list of Slack block kit components to display the information from a list of dictionaries.
-    """
-
-    @classmethod
-    def clean_dict(cls, dictionary):
-        """
-        Cleans a dictionary by removing keys with None values and flattening nested dictionaries.
-
-        Parameters:
-        dictionary (dict): The dictionary to clean.
-
-        Returns:
-        dict: The cleaned dictionary.
-        """
-        cleaned_dict = {}
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                nested_dict = cls.clean_dict(value)
-                cleaned_dict.update(nested_dict)
-            elif value is not None:
-                cleaned_dict[key] = value
-        return cleaned_dict
-
-    @classmethod
-    def enrichment_blocks(cls, dict_list, header=None):
-        """
-        Generates a list of Slack block kit components to display the information from a list of dictionaries.
-
-        Parameters:
-        dict_list (list): A list of dictionaries containing the information to display.
-        header (str, optional): The header text to display above the blocks.
-
-        Returns:
-        list: A list of Slack block kit components.
-        """
-        blocks = []
-        if header:
-            blocks.append({
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "*{}*\n".format(header)
-                }
-            })
-        for item_dict in dict_list:
-            table_text = ""
-            for key, value in item_dict.items():
-                if isinstance(value, list):
-                    value = ', '.join(map(str, value))
-                table_text += "*{}*: {}\n".format(key, value)
-            block = {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": table_text
-                }
-            }
-            blocks.append(block)
-            blocks.append({"type": "divider"})  # Add divider after each section
-        return blocks
-
-    @classmethod
-    def generate_choices(cls, similar_rows):
-        choices = []
-        if similar_rows.to_dict().get('matches'):
-            for row in similar_rows.get('matches'):
-                choices.append({
-                    "text": {
-                        "type": "plain_text",
-                        "text": row['id'],
-                    },
-                    "value": row['id']
-                })
-        else:
-            for index, row in similar_rows.iterrows():
-                choices.append({
-                    "text": {
-                        "type": "plain_text",
-                        "text": row['name'],
-                    },
-                    "value": row['name']
-                })
-        return choices
-
-    @classmethod
-    def command_outputs_blocks(cls, command_reader, command_name):
-        blocks = [{"type": "divider"}]
-        command_row = command_reader[command_reader['name'] == command_name]
-        if command_row.empty:
-            return False, None
-        choices = [{
-            "text": {
-                "type": "plain_text",
-                "text": "WarRoomOutput"
-            },
-            "value": "WarRoomOutput"
-        }]
-        if command_row['outputs'].notnull().any():
-            outputs = command_row['outputs'].values[0]
-            outputs = ast.literal_eval(outputs)
-            unique_paths_set = set()
-            for output in outputs:
-                output_path = output.get('contextPath', None)
-                path_to_third_level = '.'.join(output_path.split('.')[:3])
-                unique_paths_set.add(path_to_third_level)
-            unique_paths_list = list(unique_paths_set)
-            for path in unique_paths_list:
-                choices.append({
-                    "text": {
-                        "type": "plain_text",
-                        "text": path
-                    },
-                    "value": path
-                })
-        output_blocks = [
-            {
-                "type": "section",
-                "block_id": f"{command_name}_outputs",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Select the outputs that you want me to return for the command: *{command_name}*."
-                },
-                "accessory": {
-                    "type": "multi_static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select outputs"
-                    },
-                    "options": choices,
-                    "action_id": "command_outputs_static_select-action"
-                }
-            },
-            {"type": "divider"}
-        ]
-        blocks.extend(output_blocks)
-        if command_row['outputs'].notnull().any():
-            return True, blocks
-        else:
-            return False, blocks
-
-    @classmethod
-    def command_arguments_blocks(cls, command_reader, command_name, command_outputs=None):
-        blocks = [{"type": "divider"}]
-        command_row = command_reader[command_reader['name'] == command_name]
-        if command_row.empty:
-            return None
-        if command_row['arguments'].notnull().any():
-            arguments = command_row['arguments'].values[0]
-
-            arguments = ast.literal_eval(arguments)
-            # Sort arguments based on their required attribute
-            arguments.sort(key=lambda x: x['required'], reverse=True)
-            command_blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"Please provide values for the following arguments for the command:  *{command_name}*:"
-                    }
-                }
-            ]
-
-            for arg in arguments:
-                # If the argument is required, prepend an asterisk to its name
-                arg_name = f"*{arg['name']}" if arg['required'] else arg['name']
-                arg_text = f"{arg_name} : {arg['description']}"
-
-                block = {
-                    "type": "input",
-                    "element": {
-                        "type": "plain_text_input",
-                        "multiline": False,
-                        "action_id": arg['name']
-                    },
-                    "label": {
-                        "type": "plain_text",
-                        "text": arg_text
-                    }
-                }
-                command_blocks.append(block)
-            command_blocks.append({"type": "divider"})
-
-        else:
-            command_blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"No arguments found :ghost: for the command :  *{command_name}*"
-                    }
-                },
-                {"type": "divider"}
-            ]
-
-        blocks.extend(command_blocks)
-        # Add a submit button
-        blocks.append({
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Submit"
-                    },
-                    "style": "primary",
-                    "action_id": "submit_command_arguments",
-                    "value": command_name + "::" + ','.join(command_outputs or "-")
-                }
-            ]
-        })
-        return blocks
-
-    @classmethod
-    def payload_to_command_line(cls, payload):
-        command_name = payload['actions'][0]['value'].split("::")[0]
-        command_outputs = payload['actions'][0]['value'].split("::")[1]
-        state_values = payload['state']['values']
-
-        arguments_line = ''
-        for block_id, block_value in state_values.items():
-            for action_id, action_value in block_value.items():
-                value = action_value.get('value')
-                if value is not None:
-                    arguments_line += f" {action_id}={value}"
-
-        return f"!{command_name}{arguments_line}", command_outputs.split(",")
-
-
 # XSOAR Client for interacting with XSOAR API
 
 class XSOARClient:
@@ -770,11 +533,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -832,11 +595,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -893,11 +656,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -962,11 +725,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -1025,11 +788,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                     },
                     {
                         "type": "actions",
-                        "block_id": "actionblock789",
+                        "block_id": "open_incident_link",
                         "elements": [
                             {
                                 "type": "button",
-                                "action_id": "openincident",
+                                "action_id": "open_incident_link",
                                 "text": {
                                     "type": "plain_text",
                                     "text": "Open Incident"
@@ -1126,11 +889,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                             },
                             {
                                 "type": "actions",
-                                "block_id": "actionblock789",
+                                "block_id": "open_incident_link",
                                 "elements": [
                                     {
                                         "type": "button",
-                                        "action_id": "openincident",
+                                        "action_id": "open_incident_link",
                                         "text": {
                                             "type": "plain_text",
                                             "text": "Open Incident"
@@ -1220,11 +983,11 @@ def run_command(command_text, url, api_key, api_key_id, channel, user, bot_handl
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -1648,24 +1411,33 @@ def handle_check_mac_command(ack, body):
 
 
 @app.command("/create-incident")
-def handle_create_incident(ack, body, say, user_id, channel_name, channel_id):
+def handle_create_incident(ack, body):
     ack()
     webhook = WebhookClient(body.get("response_url"))
-    params_block = [
+
+    incident_creation_block = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Incident Request Details"
+                "text": "Incident Creation Form"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Select the type of incident you want to report:"
             }
         },
         {
             "type": "input",
+            "block_id": "incident_type",
             "element": {
                 "type": "static_select",
                 "placeholder": {
                     "type": "plain_text",
-                    "text": "Select an item"
+                    "text": "Choose a type"
                 },
                 "options": [
                     {
@@ -1689,47 +1461,48 @@ def handle_create_incident(ack, body, say, user_id, channel_name, channel_id):
                         },
                         "value": "blank"
                     }
-                ]
+                ],
+                "action_id": "select_incident_type"
             },
             "label": {
                 "type": "plain_text",
-                "text": "Type:"
+                "text": "Incident Type"
             }
         },
         {
             "type": "input",
+            "block_id": "incident_details",
             "element": {
                 "type": "plain_text_input",
                 "multiline": True,
-                "action_id": "plain_text_input-action"
+                "action_id": "incident_details_input"
             },
             "label": {
                 "type": "plain_text",
-                "text": "Details:"
+                "text": "Incident Details"
             }
         },
         {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": " "
-            },
-            "accessory": {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Submit"
-                },
-                "value": "click_me_123",
-                "action_id": "incident-type-action"
-            }
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Submit Incident"
+                    },
+                    "style": "primary",
+                    "value": "create_incident",
+                    "action_id": "submit_create_incident"
+                }
+            ]
         }
     ]
-    webhook.send(blocks=params_block)
+    webhook.send(blocks=incident_creation_block)
 
 
 @app.command("/firewall-request")
-def handle_firewall_request_command(ack, body, say, user_id, channel_name, channel_id):
+def handle_firewall_request_command(ack, body):
     ack()
     webhook = WebhookClient(body.get("response_url"))
     params_block = [
@@ -1737,7 +1510,7 @@ def handle_firewall_request_command(ack, body, say, user_id, channel_name, chann
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Request Details"
+                "text": "Firewall Tag Request Submission"
             }
         },
         {
@@ -1802,48 +1575,42 @@ def handle_firewall_request_command(ack, body, say, user_id, channel_name, chann
             "type": "input",
             "element": {
                 "type": "plain_text_input",
-                "multiline": True,
                 "action_id": "plain_text_input-action"
             },
             "label": {
                 "type": "plain_text",
-                "text": "Input IP or Mac:"
+                "text": "Enter IP or MAC Address:"
             }
         },
         {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": " "
-            },
-            "accessory": {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Submit"
-                },
-                "value": "click_me_123",
-                "action_id": "firewall-request-details-action"
-            }
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Submit Request"
+                    },
+                    "style": "primary",
+                    "value": "firewall_request",
+                    "action_id": "submit_firewall_request"
+                }
+            ]
         }
     ]
     webhook.send(blocks=params_block)
 
 
 @app.command("/block-ip")
-def handle_block_ip_command(ack, body, say):
+def handle_block_ip_command(ack, body):
     ack()
     webhook = WebhookClient(body.get("response_url"))
-
-    channel_name = body['channel_name']
-    channel = body['channel_id']
-    user_id = body['user_id']
     ip_block = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Block An IP",
+                "text": "Block An IP Address",
                 "emoji": True
             }
         },
@@ -1851,11 +1618,16 @@ def handle_block_ip_command(ack, body, say):
             "type": "input",
             "element": {
                 "type": "plain_text_input",
-                "action_id": "plain_text_input-action"
+                "action_id": "ip_address_input",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Enter IP Address",
+                    "emoji": True
+                }
             },
             "label": {
                 "type": "plain_text",
-                "text": " ",
+                "text": "IP Address",
                 "emoji": True
             }
         },
@@ -1863,29 +1635,54 @@ def handle_block_ip_command(ack, body, say):
             "type": "input",
             "element": {
                 "type": "plain_text_input",
-                "multiline": True,
-                "action_id": "plain_text_input-action"
+                "multiline": False,
+                "action_id": "ip_details_input",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Reason for blocking",
+                    "emoji": True
+                }
             },
             "label": {
                 "type": "plain_text",
-                "text": "Details:"
+                "text": "Reason",
+                "emoji": True
             }
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": " "
+                "text": "Confirm to block the IP address."
             },
             "accessory": {
                 "type": "button",
                 "text": {
                     "type": "plain_text",
-                    "text": "Block Me",
+                    "text": "Confirm Block",
                     "emoji": True
                 },
-                "value": "click_me_123",
-                "action_id": "block-ip-action"
+                "style": "danger",
+                "value": "block_ip_confirm",
+                "confirm": {
+                    "title": {
+                        "type": "plain_text",
+                        "text": "Are you sure?"
+                    },
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "This will block the IP address from accessing the network."
+                    },
+                    "confirm": {
+                        "type": "plain_text",
+                        "text": "Yes, block it"
+                    },
+                    "deny": {
+                        "type": "plain_text",
+                        "text": "No, cancel"
+                    }
+                },
+                "action_id": "confirm_block_ip"
             }
         }
     ]
@@ -1893,18 +1690,15 @@ def handle_block_ip_command(ack, body, say):
 
 
 @app.command("/xsoar-invite")
-def handle_xsoar_invite_command(ack, body, say):
+def handle_xsoar_invite_command(ack, body):
     ack()
-    channel_name = body['channel_name']
-    channel = body['channel_id']
-    user_id = body['user_id']
     webhook = WebhookClient(body.get("response_url"))
     email_block = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Email to Invite To XSOAR",
+                "text": "Invite to XSOAR",
                 "emoji": True
             }
         },
@@ -1912,11 +1706,16 @@ def handle_xsoar_invite_command(ack, body, say):
             "type": "input",
             "element": {
                 "type": "plain_text_input",
-                "action_id": "plain_text_input-action"
+                "action_id": "email_invite_input",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Enter email address",
+                    "emoji": True
+                }
             },
             "label": {
                 "type": "plain_text",
-                "text": " ",
+                "text": "Email Address",
                 "emoji": True
             }
         },
@@ -1924,170 +1723,54 @@ def handle_xsoar_invite_command(ack, body, say):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": " "
+                "text": "Submit your email address to receive an XSOAR invite."
             },
             "accessory": {
                 "type": "button",
                 "text": {
                     "type": "plain_text",
-                    "text": "Invite Me",
+                    "text": "Send Invite",
                     "emoji": True
                 },
-                "value": "click_me_123",
-                "action_id": "xsoar-invite-email-action"
+                "style": "primary",
+                "value": "send_xsoar_invite",
+                "action_id": "send_xsoar_invite_action"
             }
         }
     ]
     webhook.send(blocks=email_block)
 
 
-
 @app.command("/menu")
-def handle_menu_command(ack, body, say):
+def handle_menu_command(ack, body):
     ack()
     webhook = WebhookClient(body.get("response_url"))
-    blocks = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": "List of Slash Commands\n"
-            }
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*Usage:*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*Parameters:*"
-                }
-            ]
-        },
-        {
-            "type": "divider"
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/xsoar-health*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Check That XSOAR is Up."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/check-ioc*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Check That XSOAR is Up."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/check-mac*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Get Details about a MAC Address"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/check-ip*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Get Details about a IP Address"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/block-ip*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Block an IP at the Firewall."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/firewall-request*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Send a request to the firewall team, report an outage, a threat, make a change, or anything else."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/xsoar-invite*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Get a login to XSOAR and include your slack ID to track your incidents."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/my-incidents*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Get a list of all your open incidents."
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*/ask*"
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "Ask Black Hat Bot anything. i.e. 'What are the latest APTs in cyber security?'"
-                }
-            ]
-        }
+    intro_text = "Explore available Slash Commands to interact with XSOAR."
+    command_style = "*{}*:\n_{}_"
+
+    commands_info = [
+        ("/xsoar-health", "Check XSOAR's health status."),
+        ("/check-ioc", "Check indicators of compromise."),
+        ("/check-mac", "Retrieve details for a MAC address."),
+        ("/check-ip", "Retrieve details for an IP address."),
+        ("/block-ip", "Block an IP address at the firewall."),
+        ("/firewall-request", "Send requests to the firewall team."),
+        ("/xsoar-invite", "Request access to XSOAR."),
+        ("/my-incidents", "View all your open incidents.")
     ]
+
+    blocks = [
+        {"type": "header", "text": {"type": "plain_text", "text": "Slash Commands"}},
+        {"type": "section", "text": {"type": "mrkdwn", "text": intro_text}},
+        {"type": "divider"}
+    ]
+
+    for cmd, desc in commands_info:
+        blocks.append({
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": command_style.format(cmd, desc)}
+        })
+
     webhook.send(blocks=blocks)
 
 
@@ -2097,7 +1780,7 @@ def handle_menu_command(ack, body, say):
 
 # Check IOC Actions
 @app.action("check_ioc_select_ioc_type")
-def handle_ioc_type_action(body, ack, say, user_id, channel_name, channel_id):
+def handle_check_ioc_select_ioc_typ(body, ack):
     ack()
     ioc_type = ""
     webhook = WebhookClient(body.get("response_url"))
@@ -2217,12 +1900,12 @@ def handle_ioc_type_action(body, ack, say, user_id, channel_name, channel_id):
 
 
 @app.action("ioc_rep_selection")
-def handle_ioc_rep_selection(body, ack, say, user_id, channel_id):
+def handle_ioc_rep_selection(ack):
     ack()
 
 
 @app.action("submit_ioc_check_action")
-def handle_check_ioc_click_actions(body, ack, say):
+def handle_submit_ioc_check_action(body, ack):
     ack()
     ioc_valid = False
     ioc_type = ""
@@ -2326,11 +2009,11 @@ def handle_check_ioc_click_actions(body, ack, say):
                 },
                 {
                     "type": "actions",
-                    "block_id": "actionblock789",
+                    "block_id": "open_incident_link",
                     "elements": [
                         {
                             "type": "button",
-                            "action_id": "openincident",
+                            "action_id": "open_incident_link",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Open Incident"
@@ -2367,7 +2050,7 @@ def handle_check_ioc_click_actions(body, ack, say):
 
 
 @app.action("check_ip_submit_action")
-def handle_check_ip_action(body, ack, say):
+def handle_check_ip_submit_action(body, ack):
     ack()
     webhook = WebhookClient(body.get("response_url"))
     ip_str = ""
@@ -2427,11 +2110,11 @@ def handle_check_ip_action(body, ack, say):
             },
             {
                 "type": "actions",
-                "block_id": "actionblock789",
+                "block_id": "open_incident_link",
                 "elements": [
                     {
                         "type": "button",
-                        "action_id": "openincident",
+                        "action_id": "open_incident_link",
                         "text": {
                             "type": "plain_text",
                             "text": "Open Incident"
@@ -2456,7 +2139,7 @@ def handle_check_ip_action(body, ack, say):
 
 
 @app.action("submit_mac_check")
-def handle_check_mac_action(body, ack, say):
+def handle_submit_mac_check(body, ack):
     ack()
     webhook = WebhookClient(body.get("response_url"))
 
@@ -2522,11 +2205,11 @@ def handle_check_mac_action(body, ack, say):
             },
             {
                 "type": "actions",
-                "block_id": "actionblock789",
+                "block_id": "open_incident_link",
                 "elements": [
                     {
                         "type": "button",
-                        "action_id": "openincident",
+                        "action_id": "open_incident_link",
                         "text": {
                             "type": "plain_text",
                             "text": "Open Incident"
@@ -2550,104 +2233,172 @@ def handle_check_mac_action(body, ack, say):
     webhook.send(blocks=check_mac_block)
 
 
-@app.action("xsoar-invite-email-action")
-def handle_xsoar_invite_email_action(body, ack, say):
+@app.action("submit_create_incident")
+def handle_submit_create_incident(body, ack, user_id, channel_id):
     ack()
-    email_str = ""
-    incident_details = ""
+    webhook = WebhookClient(body.get("response_url"))
+    xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
+    option = "Blank"
+    # Grab the Option and Details
+    if "'plain_text" in str(body):
+        results = re.search(r"'plain_text',\s+'text':\s+'(.*?)'", str(body))
+        option = results.group(1)
+    if "'plain_text_input'" in str(body):
+        results = re.search(r"'plain_text_input',\s+'value':\s+'(.*?)'", str(body))
+        details = results.group(1)
+    if option == "Incident Response":
+        incident_json = xsoar_client.create_incident("Blackhat Incident Response", "",
+                                                     f"Blackhat Incident Response Created by {user_id}"
+                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
+                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
+    elif option == "Hunting":
+        incident_json = xsoar_client.create_incident("Blackhat Hunting", "",
+                                                     f"Blackhat Hunting Request Created by {user_id}"
+                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
+                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
+    else:
+        incident_json = xsoar_client.create_incident("Blackhat Blank", "",
+                                                     f"Blackhat Blank Request Created by {user_id}"
+                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
+                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
+    incident_dict = return_dict(incident_json)
+    incident_link = xsoar_url + "/Custom/caseinfoid/" + str(incident_dict['id'])
+    response_block = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "New XSOAR Incident #" + str(incident_dict['id']),
+                "emoji": True
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Type:*\n" + str(incident_dict['type'])
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Created by:*\n<@" + user_id + ">"
+                }
+            ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                }
+            ]
+        },
+        {
+            "type": "actions",
+            "block_id": "open_incident_link",
+            "elements": [
+                {
+                    "type": "button",
+                    "action_id": "open_incident_link",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Open Incident"
+                    },
+                    "url": incident_link
+                }
+            ]
+        }
+    ]
+    webhook.send(blocks=response_block)
+
+
+@app.action("submit_firewall_request")
+def handle_submit_firewall_request(body, ack):
+    ack()
     channel_name = body['channel']['name']
     channel = body['channel']['id']
     user_id = body['user']['id']
     thread = body['container']['message_ts']
-    xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
-
-    if "'plain_text_input'" in str(body):
-        results = re.search(r"'plain_text_input',\s+'value': '(.*?)'", str(body))
-        email_str = results.group(1)
 
     webhook = WebhookClient(body.get("response_url"))
+    xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
 
-    email_valid = is_email(email_str)
+    # Grab the Option and Details
+    if "'plain_text" in str(body):
+        results = re.search(r"'plain_text',\s+'text':\s+'(.*?)'", str(body))
+        tag = results.group(1)
 
-    if email_valid:
-        incident_details = "email=" + email_str + "\n"
-        mytext = incident_details + "slack_handle=" + user_id + "\nslack_thread=" + str(
-            thread) + "\nchannel_name=" + channel_name + "\nslack_channel=" + channel
-        incident_json = xsoar_client.create_incident("Blackhat XSOAR Invite", "", "XSOAR Invite " + email_str[0:20],
-                                                     SEVERITY_DICT['Low'], mytext)
+    if "'plain_text_input'" in str(body):
+        results = re.search(r"'plain_text_input',\s+'value':\s+'(.*?)'", str(body))
+        to_be_tagged = results.group(1)
+    incident_details = "Tag:" + tag + "\nToBeTagged:" + to_be_tagged
+    mytext = incident_details + "\nslack_handle=" + user_id + "\nslack_thread=" + str(
+        thread) + "\nchannel_name=" + channel_name + "\nslack_channel=" + channel
 
-        incident_dict = return_dict(incident_json)
-        incident_id = str(incident_dict['id']).strip()
-        incident_link = xsoar_url + "/Custom/caseinfoid/" + incident_id
-        invite_block = [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "New XSOAR Incident #" + incident_dict['id'],
-                    "emoji": True
+    # Create a Firewall Request in XSOAR
+    incident_json = xsoar_client.create_incident("Blackhat Firewall Request", "",
+                                                 f"Blackhat Firewall Request Created by {user_id}"
+                                                 , SEVERITY_DICT['Low'], mytext)
+
+    incident_dict = return_dict(incident_json)
+    incident_link = xsoar_url + "/Custom/caseinfoid/" + str(incident_dict['id'])
+    response_block = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "New XSOAR Incident #" + str(incident_dict['id']),
+                "emoji": True
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*Type:*\n" + str(incident_dict['type'])
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": "*Created by:*\n<@" + user_id + ">"
                 }
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Type:*\n" + incident_dict['type']
+            ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                }
+            ]
+        },
+        {
+            "type": "actions",
+            "block_id": "open_incident_link",
+            "elements": [
+                {
+                    "type": "button",
+                    "action_id": "open_incident_link",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Open Incident"
                     },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Created by:*\n<@" + user_id + ">"
-                    }
-                ]
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                    }
-                ]
-            },
-            {
-                "type": "actions",
-                "block_id": "actionblock789",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "openincident",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Open Incident"
-                        },
-                        "url": incident_link
-                    }
-                ]
-            }
-        ]
-    else:
-        invite_block = [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "This Email is not Valid",
-                    "emoji": True
+                    "url": incident_link
                 }
-            }
-        ]
+            ]
+        }
+    ]
+    webhook.send(blocks=response_block)
 
-    webhook.send(blocks=invite_block)
 
-
-@app.action("block-ip-action")
-def handle_block_ip_action(body, ack, say):
+@app.action("confirm_block_ip")
+def handle_block_ip_action(body, ack):
     ack()
     webhook = WebhookClient(body.get("response_url"))
 
     ip4_str = ""
-    incident_details = ""
     details = ""
     channel_name = body['channel']['name']
     channel = body['channel']['id']
@@ -2710,11 +2461,11 @@ def handle_block_ip_action(body, ack, say):
             },
             {
                 "type": "actions",
-                "block_id": "actionblock789",
+                "block_id": "open_incident_link",
                 "elements": [
                     {
                         "type": "button",
-                        "action_id": "openincident",
+                        "action_id": "open_incident_link",
                         "text": {
                             "type": "plain_text",
                             "text": "Open Incident"
@@ -2739,229 +2490,88 @@ def handle_block_ip_action(body, ack, say):
     webhook.send(blocks=ip_block_block)
 
 
-@app.action("firewall-request-details-action")
-def handle_firewall_request_details_action(body, ack, say, user_id, channel_name, channel_id):
+@app.action("send_xsoar_invite_action")
+def handle_send_xsoar_invite_action(body, ack, say):
     ack()
-    incident_details = ""
-    incident_json = ""
-    incident_block = ""
+    email_str = ""
     channel_name = body['channel']['name']
     channel = body['channel']['id']
     user_id = body['user']['id']
     thread = body['container']['message_ts']
-
-    webhook = WebhookClient(body.get("response_url"))
     xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
-
-    # Grab the Option and Details
-    if "'plain_text" in str(body):
-        results = re.search(r"'plain_text',\s+'text':\s+'(.*?)'", str(body))
-        tag = results.group(1)
-
     if "'plain_text_input'" in str(body):
-        results = re.search(r"'plain_text_input',\s+'value':\s+'(.*?)'", str(body))
-        to_be_tagged = results.group(1)
-    incident_details = "Tag:" + tag + "\nToBeTagged:" + to_be_tagged
-    mytext = incident_details + "\nslack_handle=" + user_id + "\nslack_thread=" + str(
-        thread) + "\nchannel_name=" + channel_name + "\nslack_channel=" + channel
-
-    # Create a Firewall Request in XSOAR
-    incident_json = xsoar_client.create_incident("Blackhat Firewall Request", "",
-                                                 f"Blackhat Firewall Request Created by {user_id}"
-                                                 , SEVERITY_DICT['Low'], mytext)
-
-    incident_dict = return_dict(incident_json)
-    incident_link = xsoar_url + "/Custom/caseinfoid/" + str(incident_dict['id'])
-    response_block = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": "New XSOAR Incident #" + str(incident_dict['id']),
-                "emoji": True
-            }
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*Type:*\n" + str(incident_dict['type'])
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*Created by:*\n<@" + user_id + ">"
+        results = re.search(r"'plain_text_input',\s+'value': '(.*?)'", str(body))
+        email_str = results.group(1)
+    webhook = WebhookClient(body.get("response_url"))
+    email_valid = is_email(email_str)
+    if email_valid:
+        incident_details = "email=" + email_str + "\n"
+        mytext = incident_details + "slack_handle=" + user_id + "\nslack_thread=" + str(
+            thread) + "\nchannel_name=" + channel_name + "\nslack_channel=" + channel
+        incident_json = xsoar_client.create_incident("Blackhat XSOAR Invite", "", "XSOAR Invite " + email_str[0:20],
+                                                     SEVERITY_DICT['Low'], mytext)
+        incident_dict = return_dict(incident_json)
+        incident_id = str(incident_dict['id']).strip()
+        incident_link = xsoar_url + "/Custom/caseinfoid/" + incident_id
+        invite_block = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "New XSOAR Incident #" + incident_dict['id'],
+                    "emoji": True
                 }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                }
-            ]
-        },
-        {
-            "type": "actions",
-            "block_id": "actionblock789",
-            "elements": [
-                {
-                    "type": "button",
-                    "action_id": "openincident",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Open Incident"
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Type:*\n" + incident_dict['type']
                     },
-                    "url": incident_link
-                }
-            ]
-        }
-    ]
-    webhook.send(blocks=response_block)
-
-
-@app.action("incident-type-action")
-def handle_check_incident_type_actions(body, ack, say, user_id, channel_name, channel_id):
-    ack()
-
-    webhook = WebhookClient(body.get("response_url"))
-    xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
-
-    # Grab the Option and Details
-    if "'plain_text" in str(body):
-        results = re.search(r"'plain_text',\s+'text':\s+'(.*?)'", str(body))
-        option = results.group(1)
-
-    if "'plain_text_input'" in str(body):
-        results = re.search(r"'plain_text_input',\s+'value':\s+'(.*?)'", str(body))
-        details = results.group(1)
-
-    if option == "Incident Response":
-        incident_json = xsoar_client.create_incident("Blackhat Incident Response", "",
-                                                     f"Blackhat Incident Response Created by {user_id}"
-                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
-                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
-    elif option == "Hunting":
-        incident_json = xsoar_client.create_incident("Blackhat Hunting", "",
-                                                     f"Blackhat Hunting Request Created by {user_id}"
-                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
-                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
-    else:
-        incident_json = xsoar_client.create_incident("Blackhat Blank", "",
-                                                     f"Blackhat Blank Request Created by {user_id}"
-                                                     , SEVERITY_DICT['Low'], "\nslack_handle=" + user_id
-                                                     + "\nslack_channel=" + channel_id + "\n\nDetails:\n" + details)
-
-    incident_dict = return_dict(incident_json)
-    incident_link = xsoar_url + "/Custom/caseinfoid/" + str(incident_dict['id'])
-    response_block = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": "New XSOAR Incident #" + str(incident_dict['id']),
-                "emoji": True
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Created by:*\n<@" + user_id + ">"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
+                    }
+                ]
+            },
+            {
+                "type": "actions",
+                "block_id": "open_incident_link",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "open_incident_link",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Open Incident"
+                        },
+                        "url": incident_link
+                    }
+                ]
             }
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*Type:*\n" + str(incident_dict['type'])
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": "*Created by:*\n<@" + user_id + ">"
-                }
-            ]
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*When:*\n" + human_date_time(str(incident_dict["created"]))
-                }
-            ]
-        },
-        {
-            "type": "actions",
-            "block_id": "actionblock789",
-            "elements": [
-                {
-                    "type": "button",
-                    "action_id": "openincident",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Open Incident"
-                    },
-                    "url": incident_link
-                }
-            ]
-        }
-    ]
-    webhook.send(blocks=response_block)
-
-
-@app.action("command_outputs_static_select-action")
-def command_outputs_static_select(ack, body, say):
-    ack()
-    webhook = WebhookClient(body.get("response_url"))
-    selected_options = body['actions'][0]['selected_options']
-    outputs = []
-    for option in selected_options:
-        outputs.append(option.get('value'))
-    command_name = body['actions'][0]['block_id'].split('_outputs')[0]
-    if soar_client.up:
-        command_arguments = Decorator.command_arguments_blocks(command_reader=command_reader, command_name=command_name,
-                                                               command_outputs=outputs)
-        webhook.send(blocks=command_arguments)
+        ]
     else:
-        # say(f"SOAR is not reachable, please get in touch with SOC team!")
-        json_string = {"channel": channel, "text": f"SOAR is not reachable, please get in touch with SOC team!"}
-        slack_send(json_string)
-
-
-@app.action("submit_command_arguments")
-def handle_command_line(ack, body, say):
-    result = ""
-    ack()
-    webhook = WebhookClient(body.get("response_url"))
-    if check_key(body.get('user'), 'id'):
-        user = body['user']['id']
-    else:
-        user = body['message']['bot_id']
-    command_line = Decorator.payload_to_command_line(body)
-    webhook.send(text='Executing Command: ' + str(command_line[0]))
-    if command_line[1] == ['-'] or "WarRoomOutput" in command_line[1]:
-        results = soar_client.execute_command(command=command_line[0], return_type='wr',
-                                              output_path=command_line[1])
-        results = results[0].contents
-
-    else:
-        results = soar_client.execute_command(command=command_line[0], return_type='context',
-                                              output_path=command_line[1])
-
-        formatted_pairs = [f"• *{k}*:{v}" for k, v in zip(command_line[1], results)]
-        results = '\n'.join(formatted_pairs)
-
-    blocks = [{
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f"The command results for *{command_line[0]}* :robot_face: :"
-        }
-    }, {"type": "divider"}, {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": results
-        }
-    }]
-    webhook.send(blocks=blocks)
+        invite_block = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "This Email is not Valid",
+                    "emoji": True
+                }
+            }
+        ]
+    webhook.send(blocks=invite_block)
 
 
 @app.action("approve_button")
@@ -2970,14 +2580,8 @@ def handle_approve_request(ack, say):
     say("Request approved!")
 
 
-@app.action("openincident")
-def handle_approve_request(ack, say):
-    ack()
-    say("Opening Incident!")
-
-
-@app.action("actionblock789")
-def handle_approve_request(ack, say):
+@app.action("open_incident_link")
+def handle_open_incident_link(ack, say):
     ack()
     say("Opening Incident!")
 
@@ -2986,23 +2590,6 @@ def handle_approve_request(ack, say):
 def handle_approve_request(ack, say):
     ack()
     say("Request rejected!")
-
-
-@app.action("slot-input-button")
-def handle_botpress_slot_text_input(body, ack, say):
-    ack()
-    xsoar_client = XSOARClient(XSOAR_API_URL, XSOAR_API_KEY, XSOAR_API_KEY_ID)
-    if check_key(body.get('user'), 'id'):
-        user = body['user']['id']
-    else:
-        user = body['message']['bot_id']
-    channel = body['channel']['id']
-    bot_handle = body['message']['bot_id']
-    channel_info = app.client.conversations_info(channel=channel)
-    channel_name = channel_info['channel']['name']
-    thread = body['message']['ts']
-    slot_input = body['state']['values']['slot_input_block']['botpress-slot-text-input']['value']
-    say(f"Hi there, <@{user}>!\n  If you need help use the /menu command.")
 
 
 def test_module():
